@@ -5,6 +5,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 import re
+from typing import List
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 
@@ -32,7 +33,7 @@ class TargetCourse:
         credit: int,
         use_wishlist: bool = False,
         strategy: Strategy = Strategy.NEW,
-        changeable_course_ids: list[str] = None,
+        changeable_course_ids: List[str] = None,
     ):
         """
         The course you want to select.
@@ -42,7 +43,7 @@ class TargetCourse:
             credit (int): Credit of the course.
             use_wishlist (bool, optional): Add course to the wishlist, which will be faster than the original, but the same period cannot be selected or wishlisted for other courses. Defaults to False.
             strategy (Strategy, optional): Recommend to keep the default, unless you know what you are doing. Defaults to Strategy.NEW.
-            changeable_course_ids (list[str], optional): If you are using Strategy.DROP_THEN_CHANGE, you need to specify the changeable course IDs. Defaults to None.
+            changeable_course_ids (List[str], optional): If you are using Strategy.DROP_THEN_CHANGE, you need to specify the changeable course IDs. Defaults to None.
         """
         self.course_id = course_id
         self.credit = credit
@@ -84,7 +85,7 @@ class FcuCourseMaster:
         self,
         username: str,
         password: str,
-        target_courses: list[TargetCourse],
+        target_courses: List[TargetCourse],
         notification_webhook: str = None,
         search_option: SearchOption = SearchOption(),
         debug: bool = False,
@@ -95,7 +96,7 @@ class FcuCourseMaster:
         Args:
             username (str): NID.
             password (str): NID password.
-            target_courses (list[TargetCourse]): Target courses.
+            target_courses (List[TargetCourse]): Target courses.
             notification_webhook (str, optional): Discord webhook URL or Line Notify token. Defaults to None.
             search_option (SearchOption, optional): Search option. Defaults to SearchOption().
             debug (bool, optional): Debug mode. Defaults to False.

@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import Dict, NamedTuple
 from bs4 import BeautifulSoup
 
 
@@ -37,16 +37,16 @@ def get_user_state(soup: BeautifulSoup):
 
     Returns:
         str: ASP.NET form path.
-        dict[str, str]: Selected courses.
-        dict[str, str]: Wishlisted courses.
-        dict[str, WishlistButtonState]: State of wishlisted courses.
+        Dict[str, str]: Selected courses.
+        Dict[str, str]: Wishlisted courses.
+        Dict[str, WishlistButtonState]: State of wishlisted courses.
         int: Max credits.
         int: Current credits.
     """
     service_path = soup.select_one("#aspnetForm").get("action")
-    selected_courses: dict[str, str] = {}
-    wishlisted_courses: dict[str, str] = {}
-    wishlisted_course_state: dict[str, WishlistButtonState] = {}
+    selected_courses: Dict[str, str] = {}
+    wishlisted_courses: Dict[str, str] = {}
+    wishlisted_course_state: Dict[str, WishlistButtonState] = {}
 
     for course in soup.select(".MiniTimeTable:not(.selected) td.week > a"):
         course_name = course.get("data-title")
