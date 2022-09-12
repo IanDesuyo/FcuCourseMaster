@@ -17,7 +17,7 @@ from .error import *
 from .form_data import *
 
 __author__ = "IanDesuyo"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 
 class Strategy(Enum):
@@ -100,7 +100,7 @@ class FcuCourseMaster:
             search_option (SearchOption, optional): Search option. Defaults to SearchOption().
             debug (bool, optional): Debug mode. Defaults to False.
         """
-        self.logger = logging.getLogger("FcuCourseBot")
+        self.logger = logging.getLogger(username)
         self.search_option = search_option
 
         self.account = Account(username, password)
@@ -187,7 +187,7 @@ class FcuCourseMaster:
         _payload = deepcopy(payload)
         _payload.update(self.current_state)
 
-        debug_request_nonce = int(datetime.now().timestamp())
+        debug_request_nonce = int(datetime.now().timestamp() * 1000)
         self.logger.debug("[Request][%d] %s %s", debug_request_nonce, "POST", self.service_path)
 
         res = await self.session.post(f"{self.service_url}/{self.service_path}", data=_payload)
@@ -263,7 +263,7 @@ class FcuCourseMaster:
 
             # --- DEBUG: save response html ---
             if self.debug:
-                with open("./debug/responses/login.html", "w", encoding="utf-8") as f:
+                with open(f"./debug/responses/{self.account.username}_login.html", "w", encoding="utf-8") as f:
                     f.write(soup.prettify())
             # --- DEBUG: save response html ---
 
@@ -294,6 +294,7 @@ class FcuCourseMaster:
         while True:
             try:
                 await self.login()
+
                 # show current courses
                 self.logger.info(f"Credit: {self.current_credit}/{self.max_credit}")
                 self.logger.info("Selected courses:")
@@ -383,7 +384,7 @@ class FcuCourseMaster:
                 self.logger.exception(e)
                 self.cached_verify_code = None
                 if getattr(e, "should_exit", False):
-                    continue
+                    break
 
             if len(self.target_courses) == 0:
                 break

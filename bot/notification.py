@@ -49,7 +49,7 @@ class DiscordNotification:
                             },
                         ],
                         "author": {"name": "幹課大師"},
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.utcnow().isoformat(),
                     }
                 ],
                 "username": "幹課大師",
@@ -67,7 +67,7 @@ class DiscordNotification:
                         "description": message,
                         "color": 15411497,
                         "author": {"name": "幹課大師"},
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.utcnow().isoformat(),
                     }
                 ],
                 "username": "幹課大師",
@@ -106,7 +106,9 @@ class Notification:
         self.username = username
         self.webhook = webhook
         self.handler = (
-            DiscordNotification(self.session, self.webhook)
+            None
+            if webhook is None
+            else DiscordNotification(self.session, self.webhook)
             if self.webhook.startswith("https://discord")
             else LineNotification(self.session, self.webhook)
         )
