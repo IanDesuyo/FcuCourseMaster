@@ -1,4 +1,7 @@
+import asyncio
+from logging import getLogger
 from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
 
 from .error import *
 
@@ -34,3 +37,33 @@ def check_response(soup: BeautifulSoup):
 
     if server_error and "您已經在其它地方登入" in server_error.text:
         raise LoginFailed(server_error.text.strip(), True)
+
+
+async def wait_until_service_time(time: datetime):
+    """
+    Wait until service time.
+
+    Args:
+        time (datetime): Service time.
+
+    Returns:
+        bool: True if current time is greater than service time, False otherwise.
+    """
+    logger = getLogger("WaitUntilServiceTime")
+
+    now = datetime.now() + timedelta(seconds=1)  # add 1 second to avoid time difference
+    if now >= time:
+        return True
+
+    wait = 0
+
+    if (time - now) > timedelta(minutes=5):
+        wait = 60 * 5
+
+    else:
+        wait = (time - now).total_seconds() - 1
+
+    logger.info("Waiting %d seconds, service time: %s", wait, time.strftime("%Y-%m-%d %H:%M:%S"))
+    await asyncio.sleep(wait)
+
+    return False
