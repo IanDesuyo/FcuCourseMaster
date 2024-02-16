@@ -27,8 +27,8 @@ class Semester(Enum):
 
 class SearchOption(NamedTuple):
     lang: SearchLang = SearchLang.CHINESE
-    year: int = datetime.now().year - 1911  # ROC era
-    sms: Semester = Semester.SECOND if datetime.now().month > 2 and datetime.now().month < 9 else Semester.FIRST
+    sms: Semester = Semester.SECOND if datetime.now().month >= 2 and datetime.now().month < 8 else Semester.FIRST
+    year: int = datetime.now().year - 1911 - (1 if sms == Semester.SECOND else 0)  # ROC era
     timeout: ClientTimeout = ClientTimeout(total=2)
     delay: float = 1
 
@@ -79,7 +79,7 @@ async def get_course_data(search_option: SearchOption, course_id: str):
         timeout=search_option.timeout,
     ) as res:
         data = await res.json()
-        data = json.loads(data["d"])
+        # data = json.loads(data["d"])
 
     data = data.get("items", [])
 
