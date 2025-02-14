@@ -1,14 +1,16 @@
-from datetime import datetime
-from enum import Enum
 import json
 import logging
+from datetime import datetime
+from enum import Enum
 from typing import NamedTuple
-from aiohttp import request, ClientTimeout
+
+from aiohttp import ClientTimeout, request
 
 from .error import CourseNotFound
 
 COURSE_SEARCH_URL = "https://coursesearch01.fcu.edu.tw/Service/Search.asmx/GetType2Result"
 
+logger = logging.getLogger(__name__)
 
 class SearchLang(Enum):
     CHINESE = "cht"
@@ -104,6 +106,6 @@ async def get_course_data(search_option: SearchOption, course_id: str):
         url=url,
     )
 
-    logging.debug(f"{course.id} {course.name} {course.selected} / {course.quota}")
+    logger.debug(f"{course.id} {course.name} {course.selected} / {course.quota}")
 
     return course, course.selected < course.quota
