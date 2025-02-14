@@ -19,7 +19,7 @@ from .utils import check_response
 from .verify_code_parser import parse_veify_code
 
 __author__ = "IanDesuyo"
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 
 class Strategy(Enum):
