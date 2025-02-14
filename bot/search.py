@@ -2,15 +2,20 @@ import json
 import logging
 from datetime import datetime
 from enum import Enum
+from functools import cache
 from typing import NamedTuple
 
 from aiohttp import ClientTimeout, request
 
 from .error import CourseNotFound
+from .utils import async_lru_cache
 
-COURSE_SEARCH_URL = "https://coursesearch01.fcu.edu.tw/Service/Search.asmx/GetType2Result"
+COURSE_SEARCH_URL = (
+    "https://coursesearch01.fcu.edu.tw/Service/Search.asmx/GetType2Result"
+)
 
 logger = logging.getLogger(__name__)
+
 
 class SearchLang(Enum):
     CHINESE = "cht"
@@ -29,8 +34,14 @@ class Semester(Enum):
 
 class SearchOption(NamedTuple):
     lang: SearchLang = SearchLang.CHINESE
-    sms: Semester = Semester.SECOND if datetime.now().month >= 2 and datetime.now().month < 8 else Semester.FIRST
-    year: int = datetime.now().year - 1911 - (1 if sms == Semester.SECOND else 0)  # ROC era
+    sms: Semester = (
+        Semester.SECOND
+        if datetime.now().month >= 2 and datetime.now().month < 8
+        else Semester.FIRST
+    )
+    year: int = (
+        datetime.now().year - 1911 - (1 if sms == Semester.SECOND else 0)
+    )  # ROC era
     timeout: ClientTimeout = ClientTimeout(total=2)
     delay: float = 1
 
@@ -109,3 +120,39 @@ async def get_course_data(search_option: SearchOption, course_id: str):
     logger.debug(f"{course.id} {course.name} {course.selected} / {course.quota}")
 
     return course, course.selected < course.quota
+
+
+@async_lru_cache(maxsize=None)  # Cache course id mapping
+async def get_course_id(
+    search_option: SearchOption,
+    course_name: str,
+    course_weekday: str,
+    course_period: str,
+):
+    async with request(
+        "POST",
+        COURSE_SEARCH_URL,
+        json={
+            "baseOptions": search_option.as_dict(),
+            "typeOptions": {
+                "course": {"enabled": True, "value": course_name},
+                "weekPeriod": {
+                    "enabled": True,
+                    "week": course_weekday,
+                    "period": course_period,
+                },
+            },
+        },
+        timeout=search_option.timeout,
+    ) as res:
+        data = await res.json()
+        # data = json.loads(data["d"])
+
+    data = data.get("items", [])
+
+    if len(data) == 0:
+        raise CourseNotFound(f"Course {course_name} not found.")
+
+    logger.debug(f"Course {course_name} found: {data[0]['scr_selcode']}")
+
+    return data[0]["scr_selcode"]

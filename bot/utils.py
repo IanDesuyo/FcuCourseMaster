@@ -1,7 +1,8 @@
 import asyncio
-from logging import getLogger
-from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
+from logging import getLogger
+
+from bs4 import BeautifulSoup
 
 from .error import *
 
@@ -63,7 +64,37 @@ async def wait_until_service_time(time: datetime):
     else:
         wait = (time - now).total_seconds() - 1
 
-    logger.info("Waiting %d seconds, service time: %s", wait, time.strftime("%Y-%m-%d %H:%M:%S"))
+    logger.info(
+        "Waiting %d seconds, service time: %s", wait, time.strftime("%Y-%m-%d %H:%M:%S")
+    )
     await asyncio.sleep(wait)
 
     return False
+
+
+# https://stackoverflow.com/a/67795893
+import asyncio
+import functools
+
+
+# parameterless decorator
+def async_lru_cache_decorator(async_function):
+    @functools.lru_cache
+    def cached_async_function(*args, **kwargs):
+        coroutine = async_function(*args, **kwargs)
+        return asyncio.ensure_future(coroutine)
+
+    return cached_async_function
+
+
+# decorator with options
+def async_lru_cache(*lru_cache_args, **lru_cache_kwargs):
+    def async_lru_cache_decorator(async_function):
+        @functools.lru_cache(*lru_cache_args, **lru_cache_kwargs)
+        def cached_async_function(*args, **kwargs):
+            coroutine = async_function(*args, **kwargs)
+            return asyncio.ensure_future(coroutine)
+
+        return cached_async_function
+
+    return async_lru_cache_decorator

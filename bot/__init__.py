@@ -228,7 +228,7 @@ class FcuCourseMaster:
             self.wishlisted_course_state,
             self.max_credit,
             self.current_credit,
-        ) = parser.get_user_state(soup)
+        ) = await parser.get_user_state(self.search_option, soup)
 
         # TODO: Make sure the queryselector is correct.
         # Maybe we can keep cached captcha in payload to avoid this?
@@ -310,7 +310,7 @@ class FcuCourseMaster:
                 self.wishlisted_course_state,
                 self.max_credit,
                 self.current_credit,
-            ) = parser.get_user_state(soup)
+            ) = await parser.get_user_state(self.search_option, soup)
 
         self.logger.info(f"[Login] Logged in as {self.account.username}")
 

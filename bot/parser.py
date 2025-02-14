@@ -1,5 +1,8 @@
 from typing import Dict, NamedTuple
+
 from bs4 import BeautifulSoup
+
+from .search import SearchOption, get_course_id
 
 
 def get_state(soup: BeautifulSoup):
@@ -28,7 +31,7 @@ class WishlistButtonState(NamedTuple):
     remove_event: str
 
 
-def get_user_state(soup: BeautifulSoup):
+async def get_user_state(search_option: SearchOption, soup: BeautifulSoup):
     """
     Parse user state.
 
@@ -48,19 +51,14 @@ def get_user_state(soup: BeautifulSoup):
     wishlisted_courses: Dict[str, str] = {}
     wishlisted_course_state: Dict[str, WishlistButtonState] = {}
 
-    for course in soup.select(".MiniTimeTable:not(.selected) td.week > a"):
-        course_name = course.get("data-title")
-        course_id = course.text
-        if course.get("href"):
-            wishlisted_courses.update({course_id: course_name})
-        else:
-            selected_courses.update({course_id: course_name})
-
     for tr in soup.select("#ctl00_MainContent_TabContainer1_tabSelected_gvWishList tr"):
         course_id_td = tr.select_one("td.gvAddWithdrawCellOne")
 
         if course_id_td:
             course_id = course_id_td.text.strip()
+            course_name = tr.select_one("td.gvAddWithdrawCellThree").text.strip()
+
+            wishlisted_courses.update({course_id: course_name})
 
             select_btn = tr.select_one('input[value="加選"]')
             remove_btn = tr.select_one('input[value="取消關注"]')
@@ -74,7 +72,36 @@ def get_user_state(soup: BeautifulSoup):
                 }
             )
 
-    max_credit = int(soup.select_one("#ctl00_userInfo1_lblCreditUpperBound").text)
-    current_credit = int(soup.select_one("#ctl00_MainContent_TabContainer1_tabSelected_lblCredit").text[-2:])
+    for period, tr in enumerate(
+        soup.select("#ctl00_MainContent_TabContainer1_tabSelected_gvFunction tr")
+    ):
+        if period == 0:
+            continue
 
-    return service_path, selected_courses, wishlisted_courses, wishlisted_course_state, max_credit, current_credit
+        for week, td in enumerate(tr.select("td")):
+            if week == 0:
+                continue
+
+            course_name = td.text.strip()
+
+            if course_name:
+                course_id = await get_course_id(
+                    search_option, course_name, week, period
+                )
+                selected_courses.update({course_id: course_name})
+
+    max_credit = int(soup.select_one("#ctl00_userInfo1_lblCreditUpperBound").text)
+    current_credit = int(
+        soup.select_one("#ctl00_MainContent_TabContainer1_tabSelected_lblCredit").text[
+            -2:
+        ]
+    )
+
+    return (
+        service_path,
+        selected_courses,
+        wishlisted_courses,
+        wishlisted_course_state,
+        max_credit,
+        current_credit,
+    )
