@@ -1,21 +1,22 @@
 import asyncio
-from copy import deepcopy
-from enum import Enum
 import json
 import logging
-from datetime import datetime, timedelta
 import re
+from copy import deepcopy
+from datetime import datetime, timedelta
+from enum import Enum
 from typing import List
+
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 
 from . import parser, search
-from .search import SearchOption
-from .notification import Notification
-from .verify_code_parser import parse_veify_code
-from .utils import check_response
 from .error import *
 from .form_data import *
+from .notification import Notification
+from .search import SearchOption
+from .utils import check_response
+from .verify_code_parser import parse_veify_code
 
 __author__ = "IanDesuyo"
 __version__ = "0.1.1"
@@ -149,7 +150,9 @@ class FcuCourseMaster:
         """
 
         if self.cached_verify_code and not get_new:
-            self.logger.info("[VerifyCode] Using cached verify code. (%s)", self.cached_verify_code)
+            self.logger.info(
+                "[VerifyCode] Using cached verify code. (%s)", self.cached_verify_code
+            )
             return self.cached_verify_code
 
         self.logger.info("[VerifyCode] Getting verify code...")
@@ -166,7 +169,9 @@ class FcuCourseMaster:
             # --- DEBUG: save verify code image ---
 
             self.cached_verify_code = parse_veify_code(data)
-            self.logger.info("[VerifyCode] Got verify code. (%s)", self.cached_verify_code)
+            self.logger.info(
+                "[VerifyCode] Got verify code. (%s)", self.cached_verify_code
+            )
             return self.cached_verify_code
 
     async def postback(self, payload: dict, retry: int = 3):
@@ -189,16 +194,24 @@ class FcuCourseMaster:
         _payload.update(self.current_state)
 
         debug_request_nonce = int(datetime.now().timestamp() * 1000)
-        self.logger.debug("[Request][%d] %s %s", debug_request_nonce, "POST", self.service_path)
+        self.logger.debug(
+            "[Request][%d] %s %s", debug_request_nonce, "POST", self.service_path
+        )
 
-        res = await self.session.post(f"{self.service_url}/{self.service_path}", data=_payload)
+        res = await self.session.post(
+            f"{self.service_url}/{self.service_path}", data=_payload
+        )
         soup = BeautifulSoup(await res.text(), "html.parser")
 
         # --- DEBUG: save response html ---
         if self.debug:
-            with open(f"./debug/requests/{debug_request_nonce}.json", "w", encoding="utf-8") as f:
+            with open(
+                f"./debug/requests/{debug_request_nonce}.json", "w", encoding="utf-8"
+            ) as f:
                 json.dump(_payload, f, ensure_ascii=False, indent=4)
-            with open(f"./debug/responses/{debug_request_nonce}.html", "w", encoding="utf-8") as f:
+            with open(
+                f"./debug/responses/{debug_request_nonce}.html", "w", encoding="utf-8"
+            ) as f:
                 f.write(soup.prettify())
 
         # --- DEBUG: save response html ---
@@ -219,11 +232,21 @@ class FcuCourseMaster:
 
         # TODO: Make sure the queryselector is correct.
         # Maybe we can keep cached captcha in payload to avoid this?
-        captcha_required = soup.select_one("#ctl00_MainContent_TabContainer1_tabSelected_CAPTCHA_imgCAPTCHA")
+        captcha_required = soup.select_one(
+            "#ctl00_MainContent_TabContainer1_tabSelected_CAPTCHA_imgCAPTCHA"
+        )
         # ctl00$MainContent$TabContainer1$tabSelected$CAPTCHA$tbCAPTCHA
-        self.logger.debug("[Request][%d] %d %s %d", debug_request_nonce, res.status, res.reason, bool(captcha_required))
+        self.logger.debug(
+            "[Request][%d] %d %s %d",
+            debug_request_nonce,
+            res.status,
+            res.reason,
+            bool(captcha_required),
+        )
         if captcha_required:
-            self.logger.warning("[Request][%d] Captcha required. Relogin...", debug_request_nonce)
+            self.logger.warning(
+                "[Request][%d] Captcha required. Relogin...", debug_request_nonce
+            )
             await self.login()
 
             if retry > 0:
@@ -264,7 +287,11 @@ class FcuCourseMaster:
 
             # --- DEBUG: save response html ---
             if self.debug:
-                with open(f"./debug/responses/{self.account.username}_login.html", "w", encoding="utf-8") as f:
+                with open(
+                    f"./debug/responses/{self.account.username}_login.html",
+                    "w",
+                    encoding="utf-8",
+                ) as f:
                     f.write(soup.prettify())
             # --- DEBUG: save response html ---
 
@@ -301,13 +328,19 @@ class FcuCourseMaster:
                 self.logger.info("Selected courses:")
                 self.logger.info(
                     ", ".join(
-                        [f"{course_id}({course_name})" for course_id, course_name in self.selected_courses.items()]
+                        [
+                            f"{course_id}({course_name})"
+                            for course_id, course_name in self.selected_courses.items()
+                        ]
                     )
                 )
                 self.logger.info("Wishlisted courses:")
                 self.logger.info(
                     ", ".join(
-                        [f"{course_id}({course_name})" for course_id, course_name in self.wishlisted_courses.items()]
+                        [
+                            f"{course_id}({course_name})"
+                            for course_id, course_name in self.wishlisted_courses.items()
+                        ]
                     )
                 )
 
@@ -318,19 +351,29 @@ class FcuCourseMaster:
                         self.target_courses.remove(course)
                         continue
 
-                    if course.credit > self.max_credit - self.current_credit and course.strategy == Strategy.NEW:
-                        self.logger.warning("%s credit exceeds limit.", course.course_id)
+                    if (
+                        course.credit > self.max_credit - self.current_credit
+                        and course.strategy == Strategy.NEW
+                    ):
+                        self.logger.warning(
+                            "%s credit exceeds limit.", course.course_id
+                        )
                         self.target_courses.remove(course)
                         continue
 
-                    if course.use_wishlist and course.course_id not in self.wishlisted_courses:
+                    if (
+                        course.use_wishlist
+                        and course.course_id not in self.wishlisted_courses
+                    ):
                         try:
                             await self.add_wishlist(course.course_id)
 
                         except CourseNotFound:
                             self.logger.warning("%s not found.", course.course_id)
                             self.target_courses.remove(course)
-                            await self.notification.error(f"Course {course.course_id} not found.")
+                            await self.notification.error(
+                                f"Course {course.course_id} not found."
+                            )
 
                 while True:
                     if datetime.now() - self.heartbeat > timedelta(minutes=8):
@@ -339,8 +382,10 @@ class FcuCourseMaster:
 
                     for course in self.target_courses:
                         try:
-                            course_data, course_has_quota = await search.get_course_data(
-                                self.search_option, course.course_id
+                            course_data, course_has_quota = (
+                                await search.get_course_data(
+                                    self.search_option, course.course_id
+                                )
                             )
 
                             if not course_has_quota:
@@ -359,18 +404,25 @@ class FcuCourseMaster:
                                 credits = self.max_credit - self.current_credit
                                 for c in self.target_courses:
                                     if c.credit > credits:
-                                        self.logger.info("%s removed because credit exceeds max credit.", c.course_id)
+                                        self.logger.info(
+                                            "%s removed because credit exceeds max credit.",
+                                            c.course_id,
+                                        )
                                         self.target_courses.remove(c)
 
                         except CourseNotFound:
                             self.logger.warning("%s not found.", course.course_id)
                             self.target_courses.remove(course)
-                            await self.notification.error(f"Course {course.course_id} not found.")
+                            await self.notification.error(
+                                f"Course {course.course_id} not found."
+                            )
 
                         except CourseNotSelectabled:
                             self.logger.warning("%s not selectable.", course.course_id)
                             self.target_courses.remove(course)
-                            await self.notification.error(f"Course {course.course_id} not selectable.")
+                            await self.notification.error(
+                                f"Course {course.course_id} not selectable."
+                            )
 
                         except CreditNotEnough:
                             self.target_courses.remove(course)
@@ -418,7 +470,9 @@ class FcuCourseMaster:
                 },
             )
 
-            if not soup.select_one("#ctl00_MainContent_TabContainer1_tabSelected_gvToAdd input[value='加選']"):
+            if not soup.select_one(
+                "#ctl00_MainContent_TabContainer1_tabSelected_gvToAdd input[value='加選']"
+            ):
                 raise CourseNotSelectabled(f"{course_id} is not open for selection.")
 
             res, soup = await self.postback(
@@ -427,7 +481,9 @@ class FcuCourseMaster:
                 }
             )
 
-        msg_span = soup.select_one("#ctl00_MainContent_TabContainer1_tabSelected_lblMsgBlock")
+        msg_span = soup.select_one(
+            "#ctl00_MainContent_TabContainer1_tabSelected_lblMsgBlock"
+        )
         if msg_span:
             msg = msg_span.text.strip()
             if "不可超修" in msg:
@@ -438,6 +494,9 @@ class FcuCourseMaster:
 
             if "已額滿" in msg:
                 return False
+            
+            if "不能選修跨部跨學制課程" in msg:
+                raise CourseNotSelectabled(msg)
 
             if "加選成功" in msg:
                 return True
@@ -445,6 +504,10 @@ class FcuCourseMaster:
         return False
 
     async def add_wishlist(self, course_id: str):
+        raise DeprecationWarning(
+            "add_wishlist is deprecated. Please maunally add course to wishlist at https://coursesearch01.fcu.edu.tw"
+        )
+
         if course_id in self.wishlisted_courses:
             return
 
@@ -477,6 +540,9 @@ class FcuCourseMaster:
         self.logger.info(f"[Wishlist] {course_id} added to wishlist.")
 
     async def remove_wishlist(self, course_id: str):
+        raise DeprecationWarning(
+            "remove_wishlist is deprecated. Please maunally remove course from wishlist at https://coursesearch01.fcu.edu.tw"
+        )
         if course_id not in self.wishlisted_courses:
             return
 
